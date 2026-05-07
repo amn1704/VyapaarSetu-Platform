@@ -21,10 +21,15 @@ logger = logging.getLogger("ubid.main")
 
 app = FastAPI(title="VyapaarSetu API")
 
-# CORS origins are centralized in backend.config settings.
-# Defaults preserve current local-dev behavior.
+# CORS origins - configure via CORS_ALLOWED_ORIGINS env var
+# For production: set to your Vercel frontend URL
+# For development: defaults to localhost if not set
 _cors_origins_raw = settings.CORS_ALLOWED_ORIGINS
-_cors_allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+if _cors_origins_raw:
+    _cors_allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+else:
+    # Development defaults - only used when CORS_ALLOWED_ORIGINS is empty
+    _cors_allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 # CORS Middleware
 app.add_middleware(

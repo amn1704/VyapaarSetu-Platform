@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = Field(..., env="JWT_SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     CORS_ALLOWED_ORIGINS: str = Field(
-        "http://localhost:5173,http://127.0.0.1:5173",
+        "",
         env="CORS_ALLOWED_ORIGINS",
     )
 
     # ── Ollama AI Configuration ──────────────────────────────────────────────
-    OLLAMA_HOST: str = Field("http://localhost:11434", env="OLLAMA_HOST")
+    OLLAMA_HOST: str = Field("", env="OLLAMA_HOST")
     EMBEDDING_MODEL: str = Field("nomic-embed-text", env="EMBEDDING_MODEL")
     LLM_MODEL: str = Field("llama3.1:8b", env="LLM_MODEL")
 

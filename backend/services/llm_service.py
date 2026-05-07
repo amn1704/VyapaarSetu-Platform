@@ -28,18 +28,22 @@ class LLMService:
     
     def __init__(self, model: str = "llama3.1:8b"):
         self.model = model
-        self.client = Client(host=settings.OLLAMA_HOST, timeout=120.0)
+        # Use localhost default if OLLAMA_HOST is not set (development)
+        ollama_host = settings.OLLAMA_HOST or "http://localhost:11434"
+        self.client = Client(host=ollama_host, timeout=120.0)
 
     def health_check(self) -> dict:
         """Verifies Ollama connectivity and model availability."""
         try:
             # Using requests for direct API check as requested
-            url = f"{settings.OLLAMA_HOST}/api/tags"
+            ollama_host = settings.OLLAMA_HOST or "http://localhost:11434"
+            url = f"{ollama_host}/api/tags"
             response = requests.get(url, timeout=5)
             response.raise_for_status()
             return {"status": "ok", "models": response.json().get("models", [])}
         except Exception as e:
-            raise ConnectionError(f"Ollama service is unreachable at {settings.OLLAMA_HOST}: {e}")
+            ollama_host = settings.OLLAMA_HOST or "http://localhost:11434"
+            raise ConnectionError(f"Ollama service is unreachable at {ollama_host}: {e}")
 
     async def _call_ollama(self, system: str, user: str, temperature: float) -> str:
         """Private helper to manage Ollama chat interactions with retries and logging."""
