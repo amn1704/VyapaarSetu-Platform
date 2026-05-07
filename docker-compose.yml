@@ -1,0 +1,119 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL + pgvector ──────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ubid-postgres
+    environment:
+      POSTGRES_DB: ubid_platform
+      POSTGRES_USER: ubid_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ubid_secure_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ubid_admin -d ubid_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (Caching & Task Queue) ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ubid-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ubid-backend
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://ubid_admin:${POSTGRES_PASSWORD:-ubid_secure_2026}@postgres:5432/ubid_platform"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      OLLAMA_HOST: "http://host.docker.internal:11434"
+      EMBEDDING_MODEL: "nomic-embed-text"
+      LLM_MODEL: "llama3.1:8b"
+      AUTO_MATCH_THRESHOLD: "0.92"
+      REVIEW_QUEUE_THRESHOLD: "0.75"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      KAFKA_BOOTSTRAP_SERVERS: "redpanda:9092"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ubid-celery-worker
+    command: ["celery", "-A", "backend.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://ubid_admin:${POSTGRES_PASSWORD:-ubid_secure_2026}@postgres:5432/ubid_platform"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      OLLAMA_HOST: "http://host.docker.internal:11434"
+      EMBEDDING_MODEL: "nomic-embed-text"
+      LLM_MODEL: "llama3.1:8b"
+      AUTO_MATCH_THRESHOLD: "0.92"
+      REVIEW_QUEUE_THRESHOLD: "0.75"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      KAFKA_BOOTSTRAP_SERVERS: "redpanda:9092"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redpanda:
+    image: redpandadata/redpanda:v24.1.7
+    container_name: ubid-redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "512M"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - "0.0.0.0:9092"
+      - --advertise-kafka-addr
+      - "redpanda:9092"
+    ports:
+      - "9092:9092"
+
+  # ── React Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ubid-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

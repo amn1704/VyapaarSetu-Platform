@@ -1,0 +1,100 @@
+.leaflet-container {
+    background: #09090b !important;
+}
+
+/* Neon High-Contrast Markers */
+.custom-data-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.data-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #000000; /* Sharp dark border for maximum contrast */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Tight drop shadow */
+}
+
+/* FORCE Black Theme for Leaflet Popups */
+.custom-map-popup .leaflet-popup-content-wrapper {
+    background: #09090b !important; /* Pure Black */
+    color: #ffffff !important;
+    border: 1px solid #27272a !important; /* Zinc-800 */
+    border-radius: 12px !important;
+    padding: 0 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7) !important;
+}
+
+.custom-map-popup .leaflet-popup-content {
+    margin: 0 !important;
+    width: 240px !important;
+}
+
+.custom-map-popup .leaflet-popup-tip {
+    background: #09090b !important;
+    border: 1px solid #27272a;
+}
+
+.custom-map-popup .leaflet-popup-close-button {
+    color: #71717a !important;
+    padding: 10px !important;
+    font-size: 16px !important;
+}
+
+/* Internal Popup Layout */
+.popup-container {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: fit-content;
+    margin-bottom: 8px;
+}
+
+.popup-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+}
+
+.popup-ubid {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #a1a1aa;
+    margin-bottom: 16px;
+}
+
+.popup-btn {
+    width: 100%;
+    background: #1E4D8C;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.popup-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}

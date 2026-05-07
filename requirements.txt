@@ -1,0 +1,29 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+sqlalchemy>=2.0.0
+asyncpg           # PostgreSQL async driver
+psycopg2-binary   # PostgreSQL sync/admin compatibility
+aiosqlite         # SQLite async driver (local dev)
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv
+numpy
+scikit-learn
+
+# ── AI / ML Stack ─────────────────────────────────────────────────────────
+ollama            # Local LLM inference (llama3.1, nomic-embed-text)
+pgvector          # PostgreSQL vector similarity extension
+
+# ── Fallback Explainability (secondary, NOT primary matching) ─────────
+rapidfuzz         # Fuzzy string matching for explainability evidence
+metaphone         # Double Metaphone phonetic encoding
+splink            # Probabilistic linkage experiments/calibration
+abydos            # Additional phonetic/string similarity algorithms
+
+# ── Data Processing ───────────────────────────────────────────────────────
+pandas
+
+# ── Background Tasks (future) ────────────────────────────────────────────
+celery[redis]
+redis
+aiokafka

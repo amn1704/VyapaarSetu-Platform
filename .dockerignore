@@ -1,0 +1,8 @@
+node_modules
+dist
+backend/__pycache__
+backend/services/__pycache__
+backend/admin/scripts/__pycache__
+.git
+scratch
+ubid.db
