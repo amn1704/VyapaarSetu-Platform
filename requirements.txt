@@ -9,6 +9,7 @@ pydantic-settings>=2.0.0
 python-dotenv
 numpy
 scikit-learn
+requests
 
 # ── AI / ML Stack ─────────────────────────────────────────────────────────
 ollama            # Local LLM inference (llama3.1, nomic-embed-text)

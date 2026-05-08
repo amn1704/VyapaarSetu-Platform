@@ -9,6 +9,7 @@ pydantic-settings>=2.0.0
 python-dotenv
 numpy
 scikit-learn
+requests
 ollama
 pgvector
 rapidfuzz
