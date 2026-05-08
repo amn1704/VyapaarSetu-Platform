@@ -25,144 +25,67 @@ async def seed_database():
 
             print("Seeding database with sample business data...")
 
-            # Sample business data
-            sample_businesses = [
-                {
-                    "name": "Ravi Engineering Works",
-                    "address": "123 Industrial Area, Bangalore 560058",
-                    "pan": "AABCR1234A",
-                    "gstin": "29AABCR1234A1Z5",
-                    "sector": "Engineering",
-                    "pincode": "560058",
-                    "source_system": "gst",
-                },
-                {
-                    "name": "Priya Electronics Pvt Ltd",
-                    "address": "45 Tech Park, Bangalore 560066",
-                    "pan": "AACCP5678B",
-                    "gstin": "29AACCP5678B1Z2",
-                    "sector": "Electronics/IT",
-                    "pincode": "560066",
-                    "source_system": "gst",
-                },
-                {
-                    "name": "Suresh Pharma Industries",
-                    "address": "78 Pharma City, Bangalore 560001",
-                    "pan": "AAAPS9012C",
-                    "gstin": "29AAAPS9012C1Z8",
-                    "sector": "Chemicals & Pharma",
-                    "pincode": "560001",
-                    "source_system": "mca",
-                },
-                {
-                    "name": "Kumar Manufacturing Co",
-                    "address": "456 Factory Road, Bangalore 560058",
-                    "pan": "AAACK3456D",
-                    "gstin": "29AAACK3456D1Z9",
-                    "sector": "Engineering",
-                    "pincode": "560058",
-                    "source_system": "mca",
-                },
-                {
-                    "name": "Mehta IT Solutions",
-                    "address": "789 Software Park, Bangalore 560066",
-                    "pan": "AAAM7890E",
-                    "gstin": "29AAAM7890E1Z1",
-                    "sector": "Electronics/IT",
-                    "pincode": "560066",
-                    "source_system": "epf",
-                },
-                {
-                    "name": "Sharma Chemical Works",
-                    "address": "321 Chemical Zone, Bangalore 560001",
-                    "pan": "AAAS2345F",
-                    "gstin": "29AAAS2345F1Z3",
-                    "sector": "Chemicals & Pharma",
-                    "pincode": "560001",
-                    "source_system": "epf",
-                },
-                {
-                    "name": "Patel Auto Parts",
-                    "address": "654 Auto Street, Bangalore 560058",
-                    "pan": "AAAP6789G",
-                    "gstin": "29AAAP6789G1Z6",
-                    "sector": "Engineering",
-                    "pincode": "560058",
-                    "source_system": "gst",
-                },
-                {
-                    "name": "Reddy Software Ltd",
-                    "address": "987 Tech Hub, Bangalore 560066",
-                    "pan": "AAAR1234H",
-                    "gstin": "29AAAR1234H1Z4",
-                    "sector": "Electronics/IT",
-                    "pincode": "560066",
-                    "source_system": "mca",
-                },
-                {
-                    "name": "Gupta Pharma Labs",
-                    "address": "147 Lab Road, Bangalore 560001",
-                    "pan": "AAAG5678I",
-                    "gstin": "29AAAG5678I1Z7",
-                    "sector": "Chemicals & Pharma",
-                    "pincode": "560001",
-                    "source_system": "epf",
-                },
-                {
-                    "name": "Ibrahim Engineering",
-                    "address": "258 Industrial Estate, Bangalore 560058",
-                    "pan": "AAAI9012J",
-                    "gstin": "29AAAI9012J1Z2",
-                    "sector": "Engineering",
-                    "pincode": "560058",
-                    "source_system": "gst",
-                },
-                {
-                    "name": "Naidu Tech Services",
-                    "address": "369 Digital Park, Bangalore 560066",
-                    "pan": "AAAN3456K",
-                    "gstin": "29AAAN3456K1Z5",
-                    "sector": "Electronics/IT",
-                    "pincode": "560066",
-                    "source_system": "mca",
-                },
-                {
-                    "name": "Verma Chemicals",
-                    "address": "753 Chemical Park, Bangalore 560001",
-                    "pan": "AAAV7890L",
-                    "gstin": "29AAAV7890L1Z8",
-                    "sector": "Chemicals & Pharma",
-                    "pincode": "560001",
-                    "source_system": "epf",
-                },
-                {
-                    "name": "Krishna Metal Works",
-                    "address": "159 Metal Street, Bangalore 560058",
-                    "pan": "AAAK2345M",
-                    "gstin": "29AAAK2345M1Z1",
-                    "sector": "Engineering",
-                    "pincode": "560058",
-                    "source_system": "gst",
-                },
-                {
-                    "name": "Lakshmi IT Consultancy",
-                    "address": "357 Silicon Valley, Bangalore 560066",
-                    "pan": "AAAL6789N",
-                    "gstin": "29AAAL6789N1Z4",
-                    "sector": "Electronics/IT",
-                    "pincode": "560066",
-                    "source_system": "mca",
-                },
-                {
-                    "name": "Rao Pharma Solutions",
-                    "address": "852 Medicine Hub, Bangalore 560001",
-                    "pan": "AAAR9012O",
-                    "gstin": "29AAAR9012O1Z7",
-                    "sector": "Chemicals & Pharma",
-                    "pincode": "560001",
-                    "source_system": "epf",
-                },
-            ]
+            # Generate 1000+ sample businesses programmatically
+            import random
+            
+            first_names = ["Ravi", "Priya", "Suresh", "Kumar", "Mehta", "Sharma", "Patel", "Reddy", "Gupta", 
+                          "Ibrahim", "Naidu", "Verma", "Krishna", "Lakshmi", "Rao", "Singh", "Kaur", "Das", 
+                          "Banerjee", "Chatterjee", "Mukherjee", "Ghosh", "Roy", "Sen", "Bose", "Acharya",
+                          "Malhotra", "Kapoor", "Khanna", "Agarwal", "Goel", "Jain", "Bhatia", "Chopra",
+                          "Rajan", "Venkat", "Subramanian", "Iyer", "Menon", "Nair", "Pillai", "Rao",
+                          "Joshi", "Deshmukh", "Patil", "Kulkarni", "Gowda", "Reddy", "Naik", "Prasad"]
+            
+            business_suffixes = ["Engineering Works", "Electronics Pvt Ltd", "Industries", "Manufacturing Co", 
+                                "IT Solutions", "Chemical Works", "Auto Parts", "Software Ltd", "Pharma Labs",
+                                "Tech Services", "Metal Works", "Consultancy", "Trading Co", "Enterprises",
+                                "Systems Ltd", "Components", "Digital Solutions", "Process Industries", "Corp"]
+            
+            sectors = ["Engineering", "Electronics/IT", "Chemicals & Pharma", "Textiles", "Food Processing",
+                      "Automotive", "Construction", "Renewable Energy"]
+            
+            pincodes = ["560001", "560002", "560003", "560010", "560020", "560025", "560038", "560040",
+                       "560050", "560058", "560060", "560066", "560070", "560076", "560080", "560090",
+                       "560100", "560102", "560103", "560107", "560300", "560500", "560600", "560800"]
+            
+            sources = ["gst", "mca", "epf", "esic", "customs", "state_tax"]
+            
+            areas = ["Industrial Area", "Tech Park", "Pharma City", "Factory Road", "Software Park",
+                    "Chemical Zone", "Auto Street", "Tech Hub", "Lab Road", "Industrial Estate",
+                    "Digital Park", "Chemical Park", "Metal Street", "Silicon Valley", "Medicine Hub",
+                    "Business District", "Commercial Complex", "SEZ", "Export Zone", "Manufacturing Hub"]
+            
+            cities = ["Bangalore", "Mumbai", "Delhi", "Chennai", "Hyderabad", "Pune", "Ahmedabad", "Kolkata"]
+            
+            def generate_business(i):
+                first = first_names[i % len(first_names)]
+                suffix = business_suffixes[i % len(business_suffixes)]
+                name = f"{first} {suffix}" if random.random() > 0.3 else f"{first} & Co {suffix}"
+                
+                area = areas[i % len(areas)]
+                city = cities[i % len(cities)]
+                pincode = pincodes[i % len(pincodes)]
+                address = f"{i+1} {area}, {city} {pincode}"
+                
+                # Generate PAN: 5 letters + 4 digits + 1 letter
+                pan_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                pan = f"{pan_letters[i % 26]}{pan_letters[(i+1) % 26]}{pan_letters[(i+2) % 26]}{pan_letters[(i+3) % 26]}{pan_letters[(i+4) % 26]}{(i+1000):04d}{pan_letters[(i+5) % 26]}"
+                
+                # Generate GSTIN: 2 digit state + PAN + 3 digits + Z + check
+                state_code = f"{(i % 37):02d}"
+                gstin = f"{state_code}{pan}1Z5"
+                
+                return {
+                    "name": name,
+                    "address": address,
+                    "pan": pan[:10],  # PAN is 10 chars
+                    "gstin": gstin[:15],  # GSTIN is 15 chars
+                    "sector": sectors[i % len(sectors)],
+                    "pincode": pincode,
+                    "source_system": sources[i % len(sources)],
+                }
+            
+            TOTAL_RECORDS = 1200  # Generate 1200 businesses
+            sample_businesses = [generate_business(i) for i in range(TOTAL_RECORDS)]
 
             # Insert raw records
             for i, business in enumerate(sample_businesses):
@@ -275,8 +198,24 @@ async def seed_database():
                             }
                         )
 
-            # Create some pending review items
-            for i in range(5):
+            # Create pending review items (more realistic distribution)
+            review_count = min(200, TOTAL_RECORDS // 6)  # ~200 review items
+            for i in range(review_count):
+                # Vary the status distribution: 60% approved, 20% pending, 20% rejected
+                rand = i % 10
+                if rand < 6:
+                    status = "approved"
+                    reviewer = f"reviewer_{i % 5 + 1}"
+                    decided = datetime.now() - timedelta(days=i % 30 + 1)
+                elif rand < 8:
+                    status = "pending"
+                    reviewer = None
+                    decided = None
+                else:
+                    status = "rejected"
+                    reviewer = f"reviewer_{i % 5 + 1}"
+                    decided = datetime.now() - timedelta(days=i % 30 + 1)
+                
                 await db.execute(
                     text("""
                         INSERT INTO review_queue 
@@ -284,19 +223,23 @@ async def seed_database():
                         VALUES (:a, :b, :score, :status, :created, :reviewer, :decided)
                     """),
                     {
-                        "a": i + 1,
-                        "b": i + 2,
-                        "score": 0.72 + i / 100,
-                        "status": "pending" if i < 3 else "approved",
-                        "created": datetime.now() - timedelta(days=i + 1),
-                        "reviewer": "admin" if i >= 3 else None,
-                        "decided": datetime.now() - timedelta(days=1) if i >= 3 else None,
+                        "a": (i * 2) % TOTAL_RECORDS + 1,
+                        "b": (i * 2 + 1) % TOTAL_RECORDS + 1,
+                        "score": 0.55 + (i % 40) / 100,  # Scores from 0.55 to 0.95
+                        "status": status,
+                        "created": datetime.now() - timedelta(days=i % 60 + 1),
+                        "reviewer": reviewer,
+                        "decided": decided,
                     }
                 )
 
             await db.commit()
             print(f"✅ Successfully seeded database with {len(sample_businesses)} businesses!")
-            print("Dashboard should now show real data.")
+            print(f"   - {TOTAL_RECORDS} raw records")
+            print(f"   - {TOTAL_RECORDS} UBIDs")
+            print(f"   - Multiple sectors: {', '.join(set(b['sector'] for b in sample_businesses[:50]))}")
+            print(f"   - Multiple pincodes: {len(set(b['pincode'] for b in sample_businesses))} unique locations")
+            print("Dashboard should now show rich demo data!")
 
         except Exception as e:
             await db.rollback()
