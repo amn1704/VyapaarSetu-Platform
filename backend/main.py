@@ -60,6 +60,14 @@ async def startup_event():
     logger.info("Initializing VyapaarSetu API...")
     await ensure_read_model(engine)
     logger.info("SQL read model views are ready.")
+    
+    # Auto-seed database if empty (for demo purposes)
+    try:
+        from .seed_data import seed_database
+        await seed_database()
+    except Exception as e:
+        logger.info(f"Seeding skipped or failed: {e}")
+    
     try:
         health = llm_service.health_check()
         logger.info(f"Ollama Connection: OK. Available models: {health['models']}")
