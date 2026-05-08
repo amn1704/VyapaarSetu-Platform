@@ -5,6 +5,8 @@ Run this to populate the database with realistic demo data.
 
 import asyncio
 import json
+import uuid
+import hashlib
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -112,29 +114,35 @@ async def seed_database():
                     "gstin": business["gstin"],
                 })
 
-                result = await db.execute(
+                # Generate UUID and checksum for raw record
+                raw_record_id = str(uuid.uuid4())
+                checksum = hashlib.md5(raw_payload.encode()).hexdigest()
+                
+                await db.execute(
                     text("""
-                        INSERT INTO raw_records (source_system, source_record_id, raw_payload, extracted_at)
-                        VALUES (:source, :record_id, :payload, :extracted)
-                        RETURNING id
+                        INSERT INTO raw_records (id, source_system, source_record_id, raw_payload, extracted_at, checksum)
+                        VALUES (:id, :source, :record_id, :payload, :extracted, :checksum)
                     """),
                     {
+                        "id": raw_record_id,
                         "source": business["source_system"],
                         "record_id": f"DEMO-{i+1:04d}",
                         "payload": raw_payload,
                         "extracted": datetime.now() - timedelta(days=i*7),
+                        "checksum": checksum,
                     }
                 )
-                raw_record_id = result.scalar_one()
 
                 # Create normalized record
+                normalized_id = str(uuid.uuid4())
                 await db.execute(
                     text("""
                         INSERT INTO normalized_records 
-                        (raw_record_id, normalized_name, pincode, sector, pan, gstin, normalized_at)
-                        VALUES (:raw_id, :name, :pincode, :sector, :pan, :gstin, :normalized)
+                        (id, raw_record_id, normalized_name, pincode, sector, pan, gstin, normalized_at)
+                        VALUES (:id, :raw_id, :name, :pincode, :sector, :pan, :gstin, :normalized)
                     """),
                     {
+                        "id": normalized_id,
                         "raw_id": raw_record_id,
                         "name": business["name"],
                         "pincode": business["pincode"],
@@ -146,14 +154,15 @@ async def seed_database():
                 )
 
                 # Create UBID
+                ubid_id = str(uuid.uuid4())
                 ubid_code = generate_ubid_code()
-                result = await db.execute(
+                await db.execute(
                     text("""
-                        INSERT INTO ubids (ubid_code, is_canonical, pan, gstin, created_at, updated_at)
-                        VALUES (:ubid, 1, :pan, :gstin, :created, :updated)
-                        RETURNING id
+                        INSERT INTO ubids (id, ubid_code, is_canonical, pan, gstin, created_at, updated_at)
+                        VALUES (:id, :ubid, 1, :pan, :gstin, :created, :updated)
                     """),
                     {
+                        "id": ubid_id,
                         "ubid": ubid_code,
                         "pan": business["pan"],
                         "gstin": business["gstin"],
@@ -161,16 +170,17 @@ async def seed_database():
                         "updated": datetime.now() - timedelta(days=i*3),
                     }
                 )
-                ubid_id = result.scalar_one()
 
                 # Create record link
+                link_id = str(uuid.uuid4())
                 await db.execute(
                     text("""
                         INSERT INTO record_links 
-                        (raw_record_id, ubid_id, source_system, confidence, decision_type, linked_at)
-                        VALUES (:raw_id, :ubid_id, :source, :confidence, :decision, :linked)
+                        (id, raw_record_id, ubid_id, source_system, confidence, decision_type, linked_at)
+                        VALUES (:id, :raw_id, :ubid_id, :source, :confidence, :decision, :linked)
                     """),
                     {
+                        "id": link_id,
                         "raw_id": raw_record_id,
                         "ubid_id": ubid_id,
                         "source": business["source_system"],
@@ -197,15 +207,18 @@ async def seed_database():
                 # Create some events
                 for j, event_type in enumerate(["registration", "filing", "inspection"]):
                     if j <= i % 3:
+                        event_id = str(uuid.uuid4())
                         await db.execute(
                             text("""
                                 INSERT INTO events 
-                                (ubid_id, source_system, event_type, event_date, payload, ingested_at)
-                                VALUES (:ubid_id, :source, :type, :date, :payload, :ingested)
+                                (id, source_system, source_record_id, ubid_id, event_type, event_date, payload, ingested_at)
+                                VALUES (:id, :source, :record_id, :ubid_id, :type, :date, :payload, :ingested)
                             """),
                             {
-                                "ubid_id": ubid_id,
+                                "id": event_id,
                                 "source": business["source_system"],
+                                "record_id": f"DEMO-{i+1:04d}-EVT{j}",
+                                "ubid_id": ubid_id,
                                 "type": event_type,
                                 "date": datetime.now() - timedelta(days=i*10 + j*20),
                                 "payload": json.dumps({"event_outcome": "completed"}),
@@ -231,13 +244,17 @@ async def seed_database():
                     reviewer = f"reviewer_{i % 5 + 1}"
                     decided = datetime.now() - timedelta(days=i % 30 + 1)
                 
+                queue_id = str(uuid.uuid4())
+                pair_id = str(uuid.uuid4())
                 await db.execute(
                     text("""
                         INSERT INTO review_queue 
-                        (record_a_id, record_b_id, similarity_score, status, created_at, reviewer_id, decided_at)
-                        VALUES (:a, :b, :score, :status, :created, :reviewer, :decided)
+                        (id, pair_id, record_a_id, record_b_id, similarity_score, status, created_at, reviewer_id, decided_at)
+                        VALUES (:id, :pair_id, :a, :b, :score, :status, :created, :reviewer, :decided)
                     """),
                     {
+                        "id": queue_id,
+                        "pair_id": pair_id,
                         "a": (i * 2) % TOTAL_RECORDS + 1,
                         "b": (i * 2 + 1) % TOTAL_RECORDS + 1,
                         "score": 0.55 + (i % 40) / 100,  # Scores from 0.55 to 0.95
