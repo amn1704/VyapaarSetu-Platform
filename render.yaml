@@ -1,5 +1,16 @@
 # Render Deployment Configuration for VyapaarSetu Backend
-# Deploy to: https://render.com
+# DEPLOYMENT INSTRUCTIONS:
+# 1. Delete any existing Blueprint or service
+# 2. Click "New +" -> "Web Service"
+# 3. Connect your GitHub repo
+# 4. Configure:
+#    - Name: vyapaarsetu-api
+#    - Runtime: Docker
+#    - Root Directory: ./ (repo root)
+#    - Dockerfile Path: ./Dockerfile
+#    - Plan: Free
+# 5. Add Environment Variables (see below)
+# 6. Click "Create Web Service"
 
 services:
   - type: web
@@ -7,7 +18,6 @@ services:
     runtime: docker
     plan: free
     region: oregon
-    rootDir: backend
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
@@ -18,3 +28,5 @@ services:
         value: "*"
       - key: DEBUG
         value: "false"
+      - key: PYTHONPATH
+        value: /app
