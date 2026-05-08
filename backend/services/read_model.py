@@ -1,10 +1,11 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+import logging
 
+logger = logging.getLogger("ubid.read_model")
 
 READ_MODEL_SQL = [
-    "DROP VIEW IF EXISTS ubid_registry",
-    """
+    ("ubid_registry", """
     CREATE VIEW ubid_registry AS
     SELECT
         u.ubid_code AS ubid,
@@ -35,9 +36,8 @@ READ_MODEL_SQL = [
     LEFT JOIN normalized_records n ON n.raw_record_id = rr.id
     WHERE u.is_canonical = 1
     GROUP BY u.id, u.ubid_code, u.pan, u.gstin, a.status
-    """,
-    "DROP VIEW IF EXISTS source_records",
-    """
+    """),
+    ("source_records", """
     CREATE VIEW source_records AS
     SELECT
         rr.id,
@@ -58,9 +58,8 @@ READ_MODEL_SQL = [
     LEFT JOIN normalized_records n ON n.raw_record_id = rr.id
     LEFT JOIN record_links l ON l.raw_record_id = rr.id AND l.unlinked_at IS NULL
     LEFT JOIN ubids u ON u.id = l.ubid_id
-    """,
-    "DROP VIEW IF EXISTS activity_events",
-    """
+    """),
+    ("activity_events", """
     CREATE VIEW activity_events AS
     SELECT
         e.id,
@@ -72,9 +71,8 @@ READ_MODEL_SQL = [
         e.ingested_at
     FROM events e
     LEFT JOIN ubids u ON u.id = e.ubid_id
-    """,
-    "DROP VIEW IF EXISTS audit_log",
-    """
+    """),
+    ("audit_log", """
     CREATE VIEW audit_log AS
     SELECT
         id,
@@ -84,11 +82,20 @@ READ_MODEL_SQL = [
         entity_type,
         created_at
     FROM audit_logs
-    """,
+    """),
 ]
 
 
 async def ensure_read_model(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
-        for statement in READ_MODEL_SQL:
-            await conn.execute(text(statement))
+        for view_name, create_sql in READ_MODEL_SQL:
+            try:
+                # Try to drop view if exists
+                await conn.execute(text(f"DROP VIEW IF EXISTS {view_name}"))
+                # Create view
+                await conn.execute(text(create_sql))
+                logger.info(f"View {view_name} created successfully")
+            except Exception as e:
+                # If view creation fails (e.g., table doesn't exist yet), log but don't crash
+                logger.warning(f"Could not create view {view_name}: {e}")
+                continue
