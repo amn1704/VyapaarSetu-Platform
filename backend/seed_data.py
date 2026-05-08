@@ -155,7 +155,7 @@ async def seed_database():
 
                 # Create UBID
                 ubid_id = str(uuid.uuid4())
-                ubid_code = generate_ubid_code()
+                ubid_code = generate_ubid_code(i + 1000)  # Pass sequential number
                 await db.execute(
                     text("""
                         INSERT INTO ubids (id, ubid_code, is_canonical, pan, gstin, created_at, updated_at)
