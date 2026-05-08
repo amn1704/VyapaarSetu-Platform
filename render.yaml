@@ -31,8 +31,8 @@ services:
         value: "/opt/render/project/src"
 
   # Optional: PostgreSQL Database
-  - type: postgres
+  - type: pserv
     name: vyapaarsetu-db
-    plan: standard  # Change to starter for free tier (500MB)
+    plan: starter  # Free tier (500MB)
     region: singapore
     ipAllowList: []  # Allow all IPs (secure with SSL)
