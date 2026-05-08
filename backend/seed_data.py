@@ -13,6 +13,33 @@ from sqlalchemy import text
 from backend.database import engine, AsyncSessionLocal, Base
 from backend.services.ubid_service import generate_ubid_code
 
+PINCODE_COORDS = {
+    "560001": (12.9716, 77.5946),
+    "560002": (12.9634, 77.5866),
+    "560003": (13.0031, 77.5643),
+    "560010": (12.9916, 77.5552),
+    "560020": (12.9896, 77.5825),
+    "560025": (12.9662, 77.6068),
+    "560038": (12.9784, 77.6408),
+    "560040": (12.9708, 77.5403),
+    "560050": (12.9417, 77.5738),
+    "560058": (13.0329, 77.5273),
+    "560060": (12.9209, 77.5021),
+    "560066": (12.9698, 77.7499),
+    "560070": (12.9166, 77.5736),
+    "560076": (12.8917, 77.5989),
+    "560080": (13.0206, 77.5845),
+    "560090": (13.0957, 77.5508),
+    "560100": (12.8452, 77.6602),
+    "560102": (12.9139, 77.6412),
+    "560103": (12.9352, 77.6245),
+    "560107": (13.0632, 77.4749),
+    "560300": (13.1986, 77.7066),
+    "560500": (12.8000, 77.6900),
+    "560600": (12.7200, 77.8200),
+    "560800": (13.2500, 77.7500),
+}
+
 
 async def init_db():
     """Create all database tables if they don't exist."""
@@ -137,11 +164,12 @@ async def seed_database():
                 # Create normalized record
                 normalized_id = str(uuid.uuid4())
                 normalized_ids.append(normalized_id)
+                latitude, longitude = PINCODE_COORDS.get(business["pincode"], (12.9716, 77.5946))
                 await db.execute(
                     text("""
                         INSERT INTO normalized_records 
-                        (id, raw_record_id, normalized_name, pincode, sector, pan, gstin, normalized_at)
-                        VALUES (:id, :raw_id, :name, :pincode, :sector, :pan, :gstin, :normalized)
+                        (id, raw_record_id, normalized_name, pincode, sector, pan, gstin, latitude, longitude, normalized_at)
+                        VALUES (:id, :raw_id, :name, :pincode, :sector, :pan, :gstin, :latitude, :longitude, :normalized)
                     """),
                     {
                         "id": normalized_id,
@@ -151,6 +179,8 @@ async def seed_database():
                         "sector": business["sector"],
                         "pan": business["pan"],
                         "gstin": business["gstin"],
+                        "latitude": latitude + ((i % 11) - 5) * 0.002,
+                        "longitude": longitude + (((i // 11) % 11) - 5) * 0.002,
                         "normalized": datetime.now() - timedelta(days=i*7 + 1),
                     }
                 )

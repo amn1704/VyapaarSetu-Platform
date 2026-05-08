@@ -17,6 +17,33 @@ from ..auth import sanitize_reviewer_id
 
 router = APIRouter()
 
+PINCODE_COORDS = {
+    "560001": (12.9716, 77.5946),
+    "560002": (12.9634, 77.5866),
+    "560003": (13.0031, 77.5643),
+    "560010": (12.9916, 77.5552),
+    "560020": (12.9896, 77.5825),
+    "560025": (12.9662, 77.6068),
+    "560038": (12.9784, 77.6408),
+    "560040": (12.9708, 77.5403),
+    "560050": (12.9417, 77.5738),
+    "560058": (13.0329, 77.5273),
+    "560060": (12.9209, 77.5021),
+    "560066": (12.9698, 77.7499),
+    "560070": (12.9166, 77.5736),
+    "560076": (12.8917, 77.5989),
+    "560080": (13.0206, 77.5845),
+    "560090": (13.0957, 77.5508),
+    "560100": (12.8452, 77.6602),
+    "560102": (12.9139, 77.6412),
+    "560103": (12.9352, 77.6245),
+    "560107": (13.0632, 77.4749),
+    "560300": (13.1986, 77.7066),
+    "560500": (12.8000, 77.6900),
+    "560600": (12.7200, 77.8200),
+    "560800": (13.2500, 77.7500),
+}
+
 
 def _json_loads(value: Any, fallback: Any = None) -> Any:
     if value is None:
@@ -472,13 +499,13 @@ async def map_data(db: AsyncSession = Depends(get_db)):
                         u.ubid_code,
                         MIN(n.normalized_name) AS name,
                         a.status,
+                        MIN(n.pincode) AS pincode,
                         AVG(n.latitude) AS lat,
                         AVG(n.longitude) AS lng
                     FROM ubids u
                     JOIN ubid_activity a ON a.ubid_id = u.id
                     JOIN record_links l ON l.ubid_id = u.id AND l.unlinked_at IS NULL
                     JOIN normalized_records n ON n.raw_record_id = l.raw_record_id
-                    WHERE n.latitude IS NOT NULL AND n.longitude IS NOT NULL
                     GROUP BY u.id, u.ubid_code, a.status
                     LIMIT 500
                     """
@@ -486,16 +513,27 @@ async def map_data(db: AsyncSession = Depends(get_db)):
             )
         ).all()
 
-        return [
-            {
+        points = []
+        for index, row in enumerate(rows):
+            lat = row.lat
+            lng = row.lng
+            if lat is None or lng is None:
+                fallback = PINCODE_COORDS.get(str(row.pincode or ""))
+                if not fallback:
+                    continue
+                lat, lng = fallback
+
+            # Keep pincode fallback points from stacking exactly on top of each other.
+            lat = float(lat) + ((index % 9) - 4) * 0.0015
+            lng = float(lng) + (((index // 9) % 9) - 4) * 0.0015
+            points.append({
                 "id": row.ubid_code,
                 "name": row.name or "Unknown Business",
-                "status": row.status,
-                "lat": row.lat,
-                "lng": row.lng,
-            }
-            for row in rows
-        ]
+                "status": row.status or "Unknown",
+                "lat": lat,
+                "lng": lng,
+            })
+        return points
     except Exception as e:
         # Return empty array if tables don't exist yet
         import logging
