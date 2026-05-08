@@ -8,12 +8,27 @@ import json
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from backend.database import engine, AsyncSessionLocal
+from backend.database import engine, AsyncSessionLocal, Base
 from backend.services.ubid_service import generate_ubid_code
+
+
+async def init_db():
+    """Create all database tables if they don't exist."""
+    try:
+        # Import models to register them with Base
+        from backend import models  # noqa: F401
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Database tables created successfully!")
+    except Exception as e:
+        print(f"⚠️ Database init warning (tables may already exist): {e}")
 
 
 async def seed_database():
     """Populate database with sample business data for demo purposes."""
+    # First ensure tables exist
+    await init_db()
+    
     async with AsyncSessionLocal() as db:
         try:
             # Check if data already exists
