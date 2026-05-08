@@ -26,14 +26,20 @@ class LLMService:
     Handles SQL generation, summarisation, and reporting.
     """
     
-    def __init__(self, model: str = "llama3.1:8b"):
-        self.model = model
+    def __init__(self, model: str | None = None):
+        self.model = model or settings.LLM_MODEL
         # Use localhost default if OLLAMA_HOST is not set (development)
         ollama_host = settings.OLLAMA_HOST or "http://localhost:11434"
         self.client = Client(host=ollama_host, timeout=120.0)
 
+    @property
+    def enabled(self) -> bool:
+        return settings.ENABLE_LLM
+
     def health_check(self) -> dict:
         """Verifies Ollama connectivity and model availability."""
+        if not self.enabled:
+            return {"status": "disabled", "models": []}
         try:
             # Using requests for direct API check as requested
             ollama_host = settings.OLLAMA_HOST or "http://localhost:11434"
@@ -47,6 +53,8 @@ class LLMService:
 
     async def _call_ollama(self, system: str, user: str, temperature: float) -> str:
         """Private helper to manage Ollama chat interactions with retries and logging."""
+        if not self.enabled:
+            raise RuntimeError("LLM is disabled. Set ENABLE_LLM=true to use Ollama-backed features.")
         
         # CRITICAL SECURITY CHECK: No real PAN may ever be sent to the LLM
         prompt_content = system + " " + user

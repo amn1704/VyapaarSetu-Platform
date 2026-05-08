@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from pydantic import BaseModel
+from ..config import settings
 from ..database import get_db
 from ..services.llm_service import llm_service
 
@@ -16,6 +17,9 @@ async def explain_activity(request: ActivityRequest, db: AsyncSession = Depends(
     Provides a plain-English explanation of a business's current status 
     based on their event timeline.
     """
+    if not settings.ENABLE_LLM:
+        raise HTTPException(status_code=503, detail="AI activity explanations are disabled. Set ENABLE_LLM=true to use Ollama locally.")
+
     # 1. Fetch events from PostgreSQL
     event_sql = "SELECT event_type, event_date, event_outcome FROM activity_events WHERE ubid = :ubid ORDER BY event_date DESC"
     registry_sql = "SELECT status FROM ubid_registry WHERE ubid = :ubid"

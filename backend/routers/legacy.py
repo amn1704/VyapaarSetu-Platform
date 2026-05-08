@@ -851,6 +851,13 @@ async def review_queue_summary(queue_item_id: str, db: AsyncSession = Depends(ge
     evidence = _review_evidence(record_a, record_b, raw_evidence, feature_vector, row.confidence_score)
     fallback = _simple_review_summary(record_a, record_b, evidence, row.confidence_score)
 
+    if not llm_service.enabled:
+        return {
+            "summary": fallback,
+            "recommendation": "approve" if (evidence["matches"]["pan"] and evidence["matches"]["pincode"] and evidence["token_overlap"]["name"] >= 70) else "keep_separate",
+            "source": "rule_summary",
+        }
+
     try:
         llm_input = {
             "record_a": pseudonymiser.pseudonymise_record(record_a),

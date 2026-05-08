@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from ..config import settings
 from ..services.llm_service import llm_service
 from ..services.pseudonymiser import pseudonymiser
 
@@ -14,6 +15,9 @@ async def summarise_review(request: ReviewSummaryRequest):
     Generates an AI-driven summary and recommendation for human reviewers.
     Treats PII with strict pseudonymisation.
     """
+    if not settings.ENABLE_LLM:
+        raise HTTPException(status_code=503, detail="AI review summaries are disabled. Set ENABLE_LLM=true to use Ollama locally.")
+
     # 1. Pseudonymise all PII in evidence dict
     try:
         pseudonymised_evidence = pseudonymiser.pseudonymise_record(request.evidence)

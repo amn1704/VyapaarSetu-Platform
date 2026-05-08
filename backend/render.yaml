@@ -18,3 +18,5 @@ services:
         value: "*"
       - key: DEBUG
         value: "false"
+      - key: ENABLE_LLM
+        value: "false"

@@ -69,22 +69,28 @@ async def startup_event():
     await ensure_read_model(engine)
     logger.info("SQL read model views are ready.")
     
-    try:
-        health = llm_service.health_check()
-        logger.info(f"Ollama Connection: OK. Available models: {health['models']}")
-    except Exception as e:
-        logger.warning(f"Ollama is unavailable at startup: {e}. AI features will be disabled.")
+    if settings.ENABLE_LLM:
+        try:
+            health = llm_service.health_check()
+            logger.info(f"Ollama Connection: OK. Available models: {health['models']}")
+        except Exception as e:
+            logger.warning(f"Ollama is unavailable at startup: {e}. AI features will be disabled.")
+    else:
+        logger.info("LLM features disabled by ENABLE_LLM=false; skipping Ollama startup check.")
 
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
     """Aggregated health status for monitoring."""
-    ollama_status = "unavailable"
-    try:
-        llm_service.health_check()
-        ollama_status = "ok"
-    except:
-        pass
+    if settings.ENABLE_LLM:
+        ollama_status = "unavailable"
+        try:
+            llm_service.health_check()
+            ollama_status = "ok"
+        except:
+            pass
+    else:
+        ollama_status = "disabled"
         
     return {
         "api": "ok",

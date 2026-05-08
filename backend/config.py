@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     )
 
     # ── Ollama AI Configuration ──────────────────────────────────────────────
+    ENABLE_LLM: bool = Field(False, env="ENABLE_LLM")
     OLLAMA_HOST: str = Field("", env="OLLAMA_HOST")
     EMBEDDING_MODEL: str = Field("nomic-embed-text", env="EMBEDDING_MODEL")
     LLM_MODEL: str = Field("llama3.1:8b", env="LLM_MODEL")

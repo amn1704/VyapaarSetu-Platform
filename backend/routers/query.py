@@ -700,6 +700,11 @@ async def natural_language_query(request: QueryRequest, db: AsyncSession = Depen
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database execution error: {e}")
     else:
+        if not settings.ENABLE_LLM:
+            raise HTTPException(
+                status_code=503,
+                detail="AI query generation is disabled. Set ENABLE_LLM=true on a local backend with Ollama to answer this question.",
+            )
         try:
             sanitised_sql, rows, version_tag = await _generate_and_execute_with_repair(request, db)
         except ValueError as e:
