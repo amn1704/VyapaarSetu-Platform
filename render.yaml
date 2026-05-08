@@ -1,38 +1,22 @@
 # Render Deployment Configuration for VyapaarSetu Backend
 # Deploy to: https://render.com
+# Note: Add PostgreSQL database manually in Render dashboard after deployment
 
 services:
   # FastAPI Web Service
   - type: web
     name: vyapaarsetu-api
     runtime: python
-    plan: standard  # Change to starter for free tier
-    region: singapore  # Closest to India, change if needed
-    buildCommand: |
-      cd backend && 
-      pip install -r ../requirements.txt
-    startCommand: |
-      cd backend && 
-      uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: vyapaarsetu-db
-          property: connectionString
+        value: sqlite+aiosqlite:///./vyapaarsetu.db
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
-        value: "*"  # Update with your frontend URL after deployment
-      - key: OLLAMA_HOST
-        value: ""  # Set if you have external Ollama
+        value: "*"
       - key: DEBUG
         value: "false"
-      - key: PYTHONPATH
-        value: "/opt/render/project/src"
-
-  # Optional: PostgreSQL Database
-  - type: pserv
-    name: vyapaarsetu-db
-    plan: starter  # Free tier (500MB)
-    region: singapore
-    ipAllowList: []  # Allow all IPs (secure with SSL)
