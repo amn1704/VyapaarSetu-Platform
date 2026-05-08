@@ -212,236 +212,253 @@ def _review_evidence(record_a: dict, record_b: dict, evidence: dict, feature_vec
 
 @router.get("/api/dashboard")
 async def dashboard(db: AsyncSession = Depends(get_db)):
-    industrial_sectors = ("Engineering", "Electronics/IT", "Chemicals & Pharma")
-    industrial_sector_sql = ", ".join(f"'{sector}'" for sector in industrial_sectors)
+    try:
+        industrial_sectors = ("Engineering", "Electronics/IT", "Chemicals & Pharma")
+        industrial_sector_sql = ", ".join(f"'{sector}'" for sector in industrial_sectors)
 
-    metrics = {
-        "total_ingested": (await db.execute(text("SELECT COUNT(*) FROM raw_records"))).scalar_one(),
-        "total_ubids": (await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1"))).scalar_one(),
-        "active_businesses": (await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Active'"))).scalar_one(),
-        "pending_review": (await db.execute(text("SELECT COUNT(*) FROM review_queue WHERE status IN ('pending', 'locked')"))).scalar_one(),
-    }
-    metrics.update(
-        {
-            "dormant_businesses": (
-                await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Dormant'"))
-            ).scalar_one(),
-            "closed_businesses": (
-                await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Closed'"))
-            ).scalar_one(),
-            "pan_anchored": (
-                await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1 AND pan IS NOT NULL AND pan != ''"))
-            ).scalar_one(),
-            "gstin_anchored": (
-                await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1 AND gstin IS NOT NULL AND gstin != ''"))
-            ).scalar_one(),
-            "linked_source_records": (
-                await db.execute(text("SELECT COUNT(*) FROM record_links WHERE unlinked_at IS NULL"))
-            ).scalar_one(),
-            "pending_events": (
-                await db.execute(text("SELECT COUNT(*) FROM pending_events"))
-            ).scalar_one(),
+        metrics = {
+            "total_ingested": (await db.execute(text("SELECT COUNT(*) FROM raw_records"))).scalar_one(),
+            "total_ubids": (await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1"))).scalar_one(),
+            "active_businesses": (await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Active'"))).scalar_one(),
+            "pending_review": (await db.execute(text("SELECT COUNT(*) FROM review_queue WHERE status IN ('pending', 'locked')"))).scalar_one(),
         }
-    )
-
-    sources = [
-        {"name": row.name.title(), "records": row.records}
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT source_system AS name, COUNT(*) AS records
-                    FROM raw_records
-                    GROUP BY source_system
-                    ORDER BY records DESC
-                    """
-                )
-            )
-        ).all()
-    ]
-    sectors = [
-        {
-            "name": row.name or "Unknown",
-            "value": row.value,
-            "active": row.active or 0,
-            "dormant": row.dormant or 0,
-            "closed": row.closed or 0,
-            "linked_records": row.linked_records or 0,
-            "avg_confidence": round(row.avg_confidence or 0, 3),
-            "pin_count": row.pin_count or 0,
-        }
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT
-                        COALESCE(u.sector, 'Unknown') AS name,
-                        COUNT(DISTINCT u.ubid) AS value,
-                        COUNT(DISTINCT CASE WHEN u.status = 'Active' THEN u.ubid END) AS active,
-                        COUNT(DISTINCT CASE WHEN u.status = 'Dormant' THEN u.ubid END) AS dormant,
-                        COUNT(DISTINCT CASE WHEN u.status = 'Closed' THEN u.ubid END) AS closed,
-                        COUNT(DISTINCT u.pin_code) AS pin_count,
-                        ROUND(AVG(u.confidence_score), 3) AS avg_confidence,
-                        COUNT(sr.id) AS linked_records
-                    FROM ubid_registry u
-                    LEFT JOIN source_records sr ON sr.ubid = u.ubid
-                    GROUP BY COALESCE(u.sector, 'Unknown')
-                    ORDER BY value DESC
-                    LIMIT 8
-                    """
-                )
-            )
-        ).all()
-    ]
-    activity = [
-        {"name": row.name, "value": row.value}
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT status AS name, COUNT(*) AS value
-                    FROM ubid_activity
-                    GROUP BY status
-                    ORDER BY value DESC
-                    """
-                )
-            )
-        ).all()
-    ]
-    pincode_hotspots = [
-        {"name": row.pin_code or "Unknown", "value": row.value, "active": row.active}
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT u.pin_code, COUNT(*) AS value,
-                           SUM(CASE WHEN u.status = 'Active' THEN 1 ELSE 0 END) AS active
-                    FROM ubid_registry u
-                    GROUP BY u.pin_code
-                    ORDER BY value DESC
-                    LIMIT 8
-                    """
-                )
-            )
-        ).all()
-    ]
-    confidence_bands = [
-        {"name": row.band, "value": row.value}
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT
-                        CASE
-                            WHEN confidence >= 0.95 THEN 'Auto-link ready'
-                            WHEN confidence >= 0.75 THEN 'Human review band'
-                            ELSE 'Keep separate'
-                        END AS band,
-                        COUNT(*) AS value
-                    FROM record_links
-                    WHERE unlinked_at IS NULL
-                    GROUP BY band
-                    ORDER BY value DESC
-                    """
-                )
-            )
-        ).all()
-    ]
-    source_coverage = [
-        {"name": row.name.title(), "linked": row.linked, "raw": row.raw}
-        for row in (
-            await db.execute(
-                text(
-                    """
-                    SELECT rr.source_system AS name,
-                           COUNT(*) AS raw,
-                           SUM(CASE WHEN l.ubid_id IS NOT NULL THEN 1 ELSE 0 END) AS linked
-                    FROM raw_records rr
-                    LEFT JOIN record_links l ON l.raw_record_id = rr.id AND l.unlinked_at IS NULL
-                    GROUP BY rr.source_system
-                    ORDER BY raw DESC
-                    """
-                )
-            )
-        ).all()
-    ]
-
-    top_pin_row = (
-        await db.execute(
-            text(
-                f"""
-                SELECT pin_code, COUNT(*) AS count
-                FROM ubid_registry
-                WHERE status = 'Active'
-                  AND sector IN ({industrial_sector_sql})
-                GROUP BY pin_code
-                ORDER BY count DESC
-                LIMIT 1
-                """
-            )
+        metrics.update(
+            {
+                "dormant_businesses": (
+                    await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Dormant'"))
+                ).scalar_one(),
+                "closed_businesses": (
+                    await db.execute(text("SELECT COUNT(*) FROM ubid_activity WHERE status = 'Closed'"))
+                ).scalar_one(),
+                "pan_anchored": (
+                    await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1 AND pan IS NOT NULL AND pan != ''"))
+                ).scalar_one(),
+                "gstin_anchored": (
+                    await db.execute(text("SELECT COUNT(*) FROM ubids WHERE is_canonical = 1 AND gstin IS NOT NULL AND gstin != ''"))
+                ).scalar_one(),
+                "linked_source_records": (
+                    await db.execute(text("SELECT COUNT(*) FROM record_links WHERE unlinked_at IS NULL"))
+                ).scalar_one(),
+                "pending_events": (
+                    await db.execute(text("SELECT COUNT(*) FROM pending_events"))
+                ).scalar_one(),
+            }
         )
-    ).first()
-    top_pin = top_pin_row.pin_code if top_pin_row else "560058"
 
-    query_cards = [
-        {
-            "label": f"Active industrial UBIDs in pin {top_pin} with no inspection in the last 18 months",
-            "question": f"Find all active factories in pin code {top_pin} with no inspection in the last 18 months",
-            "source": "UBID Registry + Activity Events",
-            "metric": (
+        sources = [
+            {"name": row.name.title(), "records": row.records}
+            for row in (
                 await db.execute(
                     text(
-                        f"""
-                        SELECT COUNT(*)
-                        FROM ubid_registry u
-                        LEFT JOIN activity_events ae
-                          ON ae.ubid = u.ubid
-                         AND ae.event_type = 'inspection'
-                        WHERE u.pin_code = :pin_code
-                          AND u.status = 'Active'
-                          AND u.sector IN ({industrial_sector_sql})
-                        GROUP BY u.pin_code
-                        HAVING MAX(ae.event_date) < date('now', '-18 months')
-                            OR MAX(ae.event_date) IS NULL
                         """
-                    ),
-                    {"pin_code": top_pin},
+                        SELECT source_system AS name, COUNT(*) AS records
+                        FROM raw_records
+                        GROUP BY source_system
+                        ORDER BY records DESC
+                        """
+                    )
                 )
-            ).scalar()
-            or 0,
-            "unit": "UBIDs need inspection evidence",
-            "tone": "primary",
-        },
-        {
-            "label": "PAN anchored UBIDs without GSTIN anchor",
-            "question": "Show businesses with PAN anchor but missing GSTIN anchor gap",
-            "source": "Central identifier anchors",
-            "metric": metrics["pan_anchored"] - metrics["gstin_anchored"],
-            "unit": "identifier gaps",
-            "tone": "warning",
-        },
-        {
-            "label": "Ambiguous linkage decisions awaiting reviewer",
-            "question": "Show ambiguous UBID matches in the human review queue",
-            "source": "Reviewer workflow",
-            "metric": metrics["pending_review"],
-            "unit": "cases",
-            "tone": "review",
-        },
-    ]
+            ).all()
+        ]
+        sectors = [
+            {
+                "name": row.name or "Unknown",
+                "value": row.value,
+                "active": row.active or 0,
+                "dormant": row.dormant or 0,
+                "closed": row.closed or 0,
+                "linked_records": row.linked_records or 0,
+                "avg_confidence": round(row.avg_confidence or 0, 3),
+                "pin_count": row.pin_count or 0,
+            }
+            for row in (
+                await db.execute(
+                    text(
+                        """
+                        SELECT
+                            COALESCE(u.sector, 'Unknown') AS name,
+                            COUNT(DISTINCT u.ubid) AS value,
+                            COUNT(DISTINCT CASE WHEN u.status = 'Active' THEN u.ubid END) AS active,
+                            COUNT(DISTINCT CASE WHEN u.status = 'Dormant' THEN u.ubid END) AS dormant,
+                            COUNT(DISTINCT CASE WHEN u.status = 'Closed' THEN u.ubid END) AS closed,
+                            COUNT(DISTINCT u.pin_code) AS pin_count,
+                            ROUND(AVG(u.confidence_score), 3) AS avg_confidence,
+                            COUNT(sr.id) AS linked_records
+                        FROM ubid_registry u
+                        LEFT JOIN source_records sr ON sr.ubid = u.ubid
+                        GROUP BY COALESCE(u.sector, 'Unknown')
+                        ORDER BY value DESC
+                        LIMIT 8
+                        """
+                    )
+                )
+            ).all()
+        ]
+        activity = [
+            {"name": row.name, "value": row.value}
+            for row in (
+                await db.execute(
+                    text(
+                        """
+                        SELECT status AS name, COUNT(*) AS value
+                        FROM ubid_activity
+                        GROUP BY status
+                        ORDER BY value DESC
+                        """
+                    )
+                )
+            ).all()
+        ]
+        pincode_hotspots = [
+            {"name": row.pin_code or "Unknown", "value": row.value, "active": row.active}
+            for row in (
+                await db.execute(
+                    text(
+                        """
+                        SELECT u.pin_code, COUNT(*) AS value,
+                               SUM(CASE WHEN u.status = 'Active' THEN 1 ELSE 0 END) AS active
+                        FROM ubid_registry u
+                        GROUP BY u.pin_code
+                        ORDER BY value DESC
+                        LIMIT 8
+                        """
+                    )
+                )
+            ).all()
+        ]
+        confidence_bands = [
+            {"name": row.band, "value": row.value}
+            for row in (
+                await db.execute(
+                    text(
+                        """
+                        SELECT
+                            CASE
+                                WHEN confidence >= 0.95 THEN 'Auto-link ready'
+                                WHEN confidence >= 0.75 THEN 'Human review band'
+                                ELSE 'Keep separate'
+                            END AS band,
+                            COUNT(*) AS value
+                        FROM record_links
+                        WHERE unlinked_at IS NULL
+                        GROUP BY band
+                        ORDER BY value DESC
+                        """
+                    )
+                )
+            ).all()
+        ]
+        source_coverage = [
+            {"name": row.name.title(), "linked": row.linked, "raw": row.raw}
+            for row in (
+                await db.execute(
+                    text(
+                        """
+                        SELECT rr.source_system AS name,
+                               COUNT(*) AS raw,
+                               SUM(CASE WHEN l.ubid_id IS NOT NULL THEN 1 ELSE 0 END) AS linked
+                        FROM raw_records rr
+                        LEFT JOIN record_links l ON l.raw_record_id = rr.id AND l.unlinked_at IS NULL
+                        GROUP BY rr.source_system
+                        ORDER BY raw DESC
+                        """
+                    )
+                )
+            ).all()
+        ]
 
-    return {
-        "metrics": metrics,
-        "charts": {
-            "sources": sources,
-            "sectors": sectors,
-            "activity": activity,
-            "pincode_hotspots": pincode_hotspots,
-            "confidence_bands": confidence_bands,
-            "source_coverage": source_coverage,
-        },
-        "query_cards": query_cards,
-    }
+        top_pin_row = (
+            await db.execute(
+                text(
+                    """
+                    SELECT pin_code
+                    FROM ubid_registry
+                    WHERE pin_code IS NOT NULL
+                    GROUP BY pin_code
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 1
+                    """
+                )
+            )
+        ).first()
+        top_pin = top_pin_row.pin_code if top_pin_row else "560058"
+
+        query_cards = [
+            {
+                "label": f"Active industrial UBIDs in pin {top_pin} with no inspection in the last 18 months",
+                "question": f"Find all active factories in pin code {top_pin} with no inspection in the last 18 months",
+                "source": "UBID Registry + Activity Events",
+                "metric": (
+                    await db.execute(
+                        text(
+                            f"""
+                            SELECT COUNT(*)
+                            FROM ubid_registry u
+                            LEFT JOIN activity_events ae
+                              ON ae.ubid = u.ubid
+                             AND ae.event_type = 'inspection'
+                            WHERE u.pin_code = :pin_code
+                              AND u.status = 'Active'
+                              AND u.sector IN ({industrial_sector_sql})
+                            GROUP BY u.pin_code
+                            HAVING MAX(ae.event_date) < date('now', '-18 months')
+                                OR MAX(ae.event_date) IS NULL
+                            """
+                        ),
+                        {"pin_code": top_pin},
+                    )
+                ).scalar()
+                or 0,
+                "unit": "UBIDs need inspection evidence",
+                "tone": "primary",
+            },
+            {
+                "label": "PAN anchored UBIDs without GSTIN anchor",
+                "question": "Show businesses with PAN anchor but missing GSTIN anchor gap",
+                "source": "Central identifier anchors",
+                "metric": metrics["pan_anchored"] - metrics["gstin_anchored"],
+                "unit": "identifier gaps",
+                "tone": "warning",
+            },
+            {
+                "label": "Ambiguous linkage decisions awaiting reviewer",
+                "question": "Show ambiguous UBID matches in the human review queue",
+                "source": "Reviewer workflow",
+                "metric": metrics["pending_review"],
+                "unit": "cases",
+                "tone": "review",
+            },
+        ]
+
+        return {
+            "metrics": metrics,
+            "charts": {
+                "sources": sources,
+                "sectors": sectors,
+                "activity": activity,
+                "pincode_hotspots": pincode_hotspots,
+                "confidence_bands": confidence_bands,
+                "source_coverage": source_coverage,
+            },
+            "query_cards": query_cards,
+        }
+    except Exception as e:
+        # Return empty dashboard data if tables don't exist yet
+        import logging
+        logging.getLogger("ubid.dashboard").warning(f"Dashboard error (likely empty database): {e}")
+        return {
+            "metrics": {
+                "total_ingested": 0, "total_ubids": 0, "active_businesses": 0,
+                "pending_review": 0, "dormant_businesses": 0, "closed_businesses": 0,
+                "pan_anchored": 0, "gstin_anchored": 0, "linked_source_records": 0,
+                "pending_events": 0,
+            },
+            "charts": {
+                "sources": [], "sectors": [], "activity": [],
+                "pincode_hotspots": [], "confidence_bands": [], "source_coverage": [],
+            },
+            "query_cards": [],
+        }
 
 
 @router.get("/api/map-data")

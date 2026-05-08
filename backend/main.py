@@ -22,22 +22,29 @@ logger = logging.getLogger("ubid.main")
 app = FastAPI(title="VyapaarSetu API")
 
 # CORS origins - configure via CORS_ALLOWED_ORIGINS env var
-# For production: set to your Vercel frontend URL
+# For production: set to your Vercel frontend URL, or use "*" to allow all
 # For development: defaults to localhost if not set
 _cors_origins_raw = settings.CORS_ALLOWED_ORIGINS
-if _cors_origins_raw:
-    _cors_allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+if _cors_origins_raw and _cors_origins_raw.strip():
+    if _cors_origins_raw == "*":
+        _cors_allowed_origins = ["*"]
+    else:
+        _cors_allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
 else:
     # Development defaults - only used when CORS_ALLOWED_ORIGINS is empty
     _cors_allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-# CORS Middleware
+logger.info(f"CORS allowed origins: {_cors_allowed_origins}")
+
+# CORS Middleware - MUST be added before any exception handlers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 # Include Routers
