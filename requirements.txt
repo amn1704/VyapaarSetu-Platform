@@ -10,6 +10,7 @@ python-dotenv
 numpy
 scikit-learn
 requests
+pyjwt
 
 # ── AI / ML Stack ─────────────────────────────────────────────────────────
 ollama            # Local LLM inference (llama3.1, nomic-embed-text)

@@ -10,6 +10,7 @@ python-dotenv
 numpy
 scikit-learn
 requests
+pyjwt
 ollama
 pgvector
 rapidfuzz
