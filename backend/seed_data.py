@@ -173,17 +173,19 @@ async def seed_database():
 
                 # Create record link
                 link_id = str(uuid.uuid4())
+                source_record_id = f"DEMO-{i+1:04d}"
                 await db.execute(
                     text("""
                         INSERT INTO record_links 
-                        (id, raw_record_id, ubid_id, source_system, confidence, decision_type, linked_at)
-                        VALUES (:id, :raw_id, :ubid_id, :source, :confidence, :decision, :linked)
+                        (id, raw_record_id, ubid_id, source_system, source_record_id, confidence, decision_type, linked_at)
+                        VALUES (:id, :raw_id, :ubid_id, :source, :source_record_id, :confidence, :decision, :linked)
                     """),
                     {
                         "id": link_id,
                         "raw_id": raw_record_id,
                         "ubid_id": ubid_id,
                         "source": business["source_system"],
+                        "source_record_id": source_record_id,
                         "confidence": 0.85 + (i % 10) / 100,  # 0.85-0.94
                         "decision": "auto_match" if i % 3 == 0 else "reviewer_approved",
                         "linked": datetime.now() - timedelta(days=i*3 + 1),
