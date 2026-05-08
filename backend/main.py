@@ -59,6 +59,7 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Ollama is unavailable at startup: {e}. AI features will be disabled.")
 
+@app.get("/health")
 @app.get("/api/health")
 async def health_check():
     """Aggregated health status for monitoring."""
