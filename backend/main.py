@@ -58,8 +58,6 @@ app.include_router(legacy.router, tags=["Legacy UI"])
 async def startup_event():
     """Checks the health of internal services on boot."""
     logger.info("Initializing VyapaarSetu API...")
-    await ensure_read_model(engine)
-    logger.info("SQL read model views are ready.")
     
     # Auto-seed database if empty (for demo purposes)
     try:
@@ -67,6 +65,9 @@ async def startup_event():
         await seed_database()
     except Exception as e:
         logger.info(f"Seeding skipped or failed: {e}")
+
+    await ensure_read_model(engine)
+    logger.info("SQL read model views are ready.")
     
     try:
         health = llm_service.health_check()

@@ -103,6 +103,7 @@ async def seed_database():
             
             TOTAL_RECORDS = 1200  # Generate 1200 businesses
             sample_businesses = [generate_business(i) for i in range(TOTAL_RECORDS)]
+            normalized_ids = []
 
             # Insert raw records
             for i, business in enumerate(sample_businesses):
@@ -135,6 +136,7 @@ async def seed_database():
 
                 # Create normalized record
                 normalized_id = str(uuid.uuid4())
+                normalized_ids.append(normalized_id)
                 await db.execute(
                     text("""
                         INSERT INTO normalized_records 
@@ -194,15 +196,25 @@ async def seed_database():
 
                 # Create UBID activity
                 status = ["Active", "Active", "Active", "Dormant", "Active"][i % 5]
+                activity_score = 0.82 if status == "Active" else 0.34
                 await db.execute(
                     text("""
-                        INSERT INTO ubid_activity (ubid_id, status, status_since)
-                        VALUES (:ubid_id, :status, :since)
+                        INSERT INTO ubid_activity
+                        (ubid_id, status, score, evidence_timeline, computed_at)
+                        VALUES (:ubid_id, :status, :score, :evidence, :computed_at)
                     """),
                     {
                         "ubid_id": ubid_id,
                         "status": status,
-                        "since": datetime.now() - timedelta(days=30 + i*5),
+                        "score": activity_score,
+                        "evidence": json.dumps([
+                            {
+                                "event": "demo_activity_baseline",
+                                "status": status,
+                                "observed_at": (datetime.now() - timedelta(days=30 + i*5)).isoformat(),
+                            }
+                        ]),
+                        "computed_at": datetime.now() - timedelta(days=30 + i*5),
                     }
                 )
 
@@ -248,22 +260,61 @@ async def seed_database():
                 
                 queue_id = str(uuid.uuid4())
                 pair_id = str(uuid.uuid4())
+                scored_pair_id = str(uuid.uuid4())
+                record_a_id = normalized_ids[(i * 2) % TOTAL_RECORDS]
+                record_b_id = normalized_ids[(i * 2 + 1) % TOTAL_RECORDS]
+                queue_status = "resolved" if status in ("approved", "rejected") else "pending"
+
+                await db.execute(
+                    text("""
+                        INSERT INTO candidate_pairs
+                        (id, record_a_id, record_b_id, blocking_strategy, created_at)
+                        VALUES (:id, :record_a_id, :record_b_id, :blocking_strategy, :created_at)
+                    """),
+                    {
+                        "id": pair_id,
+                        "record_a_id": record_a_id,
+                        "record_b_id": record_b_id,
+                        "blocking_strategy": "demo_seed",
+                        "created_at": datetime.now() - timedelta(days=i % 60 + 1),
+                    }
+                )
+
+                await db.execute(
+                    text("""
+                        INSERT INTO scored_pairs
+                        (id, pair_id, record_a_id, record_b_id, feature_vector, confidence_score, evidence_object, weight_version, scored_at)
+                        VALUES (:id, :pair_id, :record_a_id, :record_b_id, :feature_vector, :confidence_score, :evidence_object, :weight_version, :scored_at)
+                    """),
+                    {
+                        "id": scored_pair_id,
+                        "pair_id": pair_id,
+                        "record_a_id": record_a_id,
+                        "record_b_id": record_b_id,
+                        "feature_vector": json.dumps({"name_similarity": 0.72, "address_similarity": 0.68}),
+                        "confidence_score": 0.55 + (i % 40) / 100,
+                        "evidence_object": json.dumps({"reason": "Demo seeded review candidate"}),
+                        "weight_version": "demo-v1",
+                        "scored_at": datetime.now() - timedelta(days=i % 60 + 1),
+                    }
+                )
+
                 await db.execute(
                     text("""
                         INSERT INTO review_queue 
-                        (id, pair_id, record_a_id, record_b_id, similarity_score, status, created_at, reviewer_id, decided_at)
-                        VALUES (:id, :pair_id, :a, :b, :score, :status, :created, :reviewer, :decided)
+                        (id, pair_id, scored_pair_id, confidence_score, priority, status, reviewer_notes, queued_at, resolved_at)
+                        VALUES (:id, :pair_id, :scored_pair_id, :confidence_score, :priority, :status, :reviewer_notes, :queued_at, :resolved_at)
                     """),
                     {
                         "id": queue_id,
                         "pair_id": pair_id,
-                        "a": (i * 2) % TOTAL_RECORDS + 1,
-                        "b": (i * 2 + 1) % TOTAL_RECORDS + 1,
-                        "score": 0.55 + (i % 40) / 100,  # Scores from 0.55 to 0.95
-                        "status": status,
-                        "created": datetime.now() - timedelta(days=i % 60 + 1),
-                        "reviewer": reviewer,
-                        "decided": decided,
+                        "scored_pair_id": scored_pair_id,
+                        "confidence_score": 0.55 + (i % 40) / 100,  # Scores from 0.55 to 0.95
+                        "priority": 1 + (i % 5),
+                        "status": queue_status,
+                        "reviewer_notes": f"Demo review status: {status}" if reviewer else None,
+                        "queued_at": datetime.now() - timedelta(days=i % 60 + 1),
+                        "resolved_at": decided,
                     }
                 )
 
