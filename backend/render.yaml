@@ -1,5 +1,6 @@
 # Render Deployment Configuration for VyapaarSetu Backend
 # Deploy to: https://render.com
+# Place this file in backend/ folder and set rootDir to backend in Render dashboard
 
 services:
   - type: web
@@ -7,7 +8,6 @@ services:
     runtime: docker
     plan: free
     region: oregon
-    rootDir: backend
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
