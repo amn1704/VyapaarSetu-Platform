@@ -1,6 +1,5 @@
 # Render Deployment Configuration for VyapaarSetu Backend
 # Deploy to: https://render.com
-# Note: Add PostgreSQL database manually in Render dashboard after deployment
 
 services:
   # FastAPI Web Service
@@ -9,8 +8,9 @@ services:
     runtime: python
     plan: free
     region: oregon
-    buildCommand: pip install -r requirements.txt
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    buildCommand: pip install -r ../requirements.txt
+    startCommand: PYTHONPATH=/opt/render/project/src/backend uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         value: sqlite+aiosqlite:///./vyapaarsetu.db
@@ -20,3 +20,5 @@ services:
         value: "*"
       - key: DEBUG
         value: "false"
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
