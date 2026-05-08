@@ -463,38 +463,44 @@ async def dashboard(db: AsyncSession = Depends(get_db)):
 
 @router.get("/api/map-data")
 async def map_data(db: AsyncSession = Depends(get_db)):
-    rows = (
-        await db.execute(
-            text(
-                """
-                SELECT
-                    u.ubid_code,
-                    MIN(n.normalized_name) AS name,
-                    a.status,
-                    AVG(n.latitude) AS lat,
-                    AVG(n.longitude) AS lng
-                FROM ubids u
-                JOIN ubid_activity a ON a.ubid_id = u.id
-                JOIN record_links l ON l.ubid_id = u.id AND l.unlinked_at IS NULL
-                JOIN normalized_records n ON n.raw_record_id = l.raw_record_id
-                WHERE n.latitude IS NOT NULL AND n.longitude IS NOT NULL
-                GROUP BY u.id, u.ubid_code, a.status
-                LIMIT 500
-                """
+    try:
+        rows = (
+            await db.execute(
+                text(
+                    """
+                    SELECT
+                        u.ubid_code,
+                        MIN(n.normalized_name) AS name,
+                        a.status,
+                        AVG(n.latitude) AS lat,
+                        AVG(n.longitude) AS lng
+                    FROM ubids u
+                    JOIN ubid_activity a ON a.ubid_id = u.id
+                    JOIN record_links l ON l.ubid_id = u.id AND l.unlinked_at IS NULL
+                    JOIN normalized_records n ON n.raw_record_id = l.raw_record_id
+                    WHERE n.latitude IS NOT NULL AND n.longitude IS NOT NULL
+                    GROUP BY u.id, u.ubid_code, a.status
+                    LIMIT 500
+                    """
+                )
             )
-        )
-    ).all()
+        ).all()
 
-    return [
-        {
-            "id": row.ubid_code,
-            "name": row.name or "Unknown Business",
-            "status": row.status,
-            "lat": row.lat,
-            "lng": row.lng,
-        }
-        for row in rows
-    ]
+        return [
+            {
+                "id": row.ubid_code,
+                "name": row.name or "Unknown Business",
+                "status": row.status,
+                "lat": row.lat,
+                "lng": row.lng,
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        # Return empty array if tables don't exist yet
+        import logging
+        logging.getLogger("ubid.map").warning(f"Map data error: {e}")
+        return []
 
 
 @router.get("/api/raw-records")
